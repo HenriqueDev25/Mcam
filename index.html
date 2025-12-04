@@ -3,72 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trena Virtual - Medição por Câmera</title>
+    <title>Trena por Câmera</title>
     <style>
+        /* Reset básico */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #f0f0f0;
-            min-height: 100vh;
-            overflow-x: hidden;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #111;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            padding: 0;
         }
         
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-top: 10px;
-        }
-        
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-            background: linear-gradient(90deg, #00dbde, #fc00ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .subtitle {
-            font-size: 1rem;
-            opacity: 0.8;
-            margin-bottom: 15px;
-        }
-        
-        .main-content {
+        /* Container principal */
+        .app-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            height: 100vh;
+            position: relative;
         }
         
-        .camera-container {
+        /* Cabeçalho */
+        .header {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            z-index: 10;
+        }
+        
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+        
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 3px;
+        }
+        
+        /* Área da câmera */
+        .camera-area {
+            flex: 1;
             position: relative;
-            width: 100%;
-            background-color: #000;
-            border-radius: 15px;
+            background: #000;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            aspect-ratio: 4/3;
         }
         
         #camera-view {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: scaleX(-1); /* Espelhar para parecer espelho */
         }
         
-        .measurement-overlay {
+        /* Overlay de medição */
+        .measure-overlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -77,317 +76,363 @@
             pointer-events: none;
         }
         
+        /* Retículo central */
         .crosshair {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 2px solid #00ff88;
-            border-radius: 50%;
+            width: 60px;
+            height: 60px;
         }
         
-        .crosshair:before, .crosshair:after {
+        .crosshair::before,
+        .crosshair::after {
             content: '';
             position: absolute;
-            background-color: #00ff88;
+            background: #4CAF50;
+            border-radius: 2px;
         }
         
-        .crosshair:before {
+        .crosshair::before {
             width: 2px;
-            height: 60px;
-            top: 50%;
+            height: 100%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
         }
         
-        .crosshair:after {
-            width: 60px;
+        .crosshair::after {
+            width: 100%;
             height: 2px;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateY(-50%);
         }
         
-        .measurement-point {
+        /* Pontos de medição */
+        .measure-point {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
+            background: #FF4081;
+            border: 3px solid white;
             border-radius: 50%;
-            background-color: #ff3366;
-            border: 2px solid white;
             transform: translate(-50%, -50%);
-            pointer-events: all;
-            cursor: move;
+            pointer-events: auto;
+            box-shadow: 0 0 10px rgba(255, 64, 129, 0.8);
         }
         
-        .measurement-line {
+        /* Linhas de medição */
+        .measure-line {
             position: absolute;
-            height: 2px;
-            background-color: rgba(0, 255, 136, 0.7);
+            height: 3px;
+            background: rgba(76, 175, 80, 0.8);
             transform-origin: 0 0;
             pointer-events: none;
+            z-index: 2;
         }
         
-        .controls {
-            background: rgba(30, 30, 46, 0.8);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        /* Painel de controle */
+        .control-panel {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px 15px;
+            border-top: 1px solid #333;
+            z-index: 10;
         }
         
-        .measurement-display {
+        /* Display de medições */
+        .measure-display {
             display: flex;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
             margin-bottom: 20px;
-        }
-        
-        .measurement-card {
-            flex: 1;
-            min-width: 150px;
-            background: linear-gradient(135deg, #23234d, #1a1a3a);
+            background: rgba(30, 30, 30, 0.9);
             border-radius: 12px;
             padding: 15px;
-            text-align: center;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
         
-        .measurement-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #00ff88;
-            margin: 5px 0;
-        }
-        
-        .measurement-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .btn {
+        .measure-item {
             flex: 1;
-            min-width: 140px;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            text-align: center;
+            padding: 5px;
         }
         
-        .btn-primary {
-            background: linear-gradient(90deg, #00dbde, #0093E9);
-            color: white;
+        .measure-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4CAF50;
+            line-height: 1;
         }
         
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .measure-unit {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 5px;
         }
         
-        .btn-danger {
-            background: linear-gradient(90deg, #FF416C, #FF4B2B);
-            color: white;
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .btn i {
-            font-size: 1.2rem;
-        }
-        
-        .instructions {
-            background: rgba(30, 30, 46, 0.8);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        .instructions h3 {
-            color: #00dbde;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-        }
-        
-        .instructions ol {
-            padding-left: 20px;
+        /* Botões de ação */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
             margin-bottom: 15px;
         }
         
-        .instructions li {
+        .action-btn {
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-add {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+        }
+        
+        .btn-clear {
+            background: linear-gradient(135deg, #2196F3, #1565C0);
+        }
+        
+        .btn-switch {
+            background: linear-gradient(135deg, #FF9800, #EF6C00);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #F44336, #C62828);
+            grid-column: span 2;
+        }
+        
+        /* Instruções */
+        .instructions {
+            background: rgba(40, 40, 40, 0.9);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .instructions h3 {
+            color: #4CAF50;
             margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        /* Modal de permissão */
+        .permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .permission-content {
+            background: #222;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .permission-content h2 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .permission-content p {
+            margin-bottom: 20px;
             line-height: 1.5;
         }
         
-        .warning {
-            color: #ff9966;
-            font-size: 0.9rem;
-            font-style: italic;
-            border-left: 3px solid #ff9966;
-            padding-left: 10px;
+        .permission-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
         }
         
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        @media (max-width: 768px) {
-            .measurement-display {
-                flex-direction: column;
-            }
-            
-            .buttons {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
+        .hidden {
+            display: none !important;
         }
         
         /* Animações */
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
         }
         
         .pulse {
-            animation: pulse 2s infinite;
+            animation: pulse 0.5s ease-in-out;
         }
         
-        .hidden {
-            display: none;
+        /* Indicador de ponto */
+        .point-number {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        /* Rótulo de distância */
+        .distance-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #4CAF50;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            transform: translate(-50%, -50%);
+            border: 1px solid #4CAF50;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-ruler-combined"></i> TRENA VIRTUAL</h1>
-            <p class="subtitle">Use a câmera do seu celular para medir distâncias e áreas</p>
-        </header>
+    <div class="app-container">
+        <div class="header">
+            <h1>📏 Trena por Câmera</h1>
+            <p>Toque em "Adicionar Ponto" para começar a medir</p>
+        </div>
         
-        <main class="main-content">
-            <div class="camera-container">
-                <video id="camera-view" autoplay playsinline></video>
-                <div class="measurement-overlay" id="measurement-overlay">
-                    <div class="crosshair"></div>
+        <div class="camera-area">
+            <video id="camera-view" autoplay playsinline></video>
+            <div class="measure-overlay" id="measure-overlay">
+                <div class="crosshair"></div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="measure-display">
+                <div class="measure-item">
+                    <div class="measure-value" id="distance-value">0.00</div>
+                    <div class="measure-unit">METROS</div>
+                </div>
+                <div class="measure-item">
+                    <div class="measure-value" id="area-value">0.00</div>
+                    <div class="measure-unit">M²</div>
+                </div>
+                <div class="measure-item">
+                    <div class="measure-value" id="points-value">0</div>
+                    <div class="measure-unit">PONTOS</div>
                 </div>
             </div>
             
-            <div class="controls">
-                <div class="measurement-display">
-                    <div class="measurement-card">
-                        <div class="measurement-label">Distância</div>
-                        <div class="measurement-value" id="distance-value">0.00</div>
-                        <div class="measurement-label">metros</div>
-                    </div>
-                    
-                    <div class="measurement-card">
-                        <div class="measurement-label">Área</div>
-                        <div class="measurement-value" id="area-value">0.00</div>
-                        <div class="measurement-label">metros²</div>
-                    </div>
-                    
-                    <div class="measurement-card">
-                        <div class="measurement-label">Pontos</div>
-                        <div class="measurement-value" id="points-value">0</div>
-                        <div class="measurement-label">ativos</div>
-                    </div>
-                </div>
-                
-                <div class="buttons">
-                    <button class="btn btn-primary" id="add-point-btn">
-                        <i class="fas fa-plus-circle"></i> Adicionar Ponto
-                    </button>
-                    <button class="btn btn-secondary" id="clear-btn">
-                        <i class="fas fa-trash-alt"></i> Limpar
-                    </button>
-                    <button class="btn btn-secondary" id="toggle-camera-btn">
-                        <i class="fas fa-camera"></i> Alternar Câmera
-                    </button>
-                    <button class="btn btn-danger" id="reset-btn">
-                        <i class="fas fa-redo"></i> Reiniciar
-                    </button>
-                </div>
+            <div class="action-buttons">
+                <button class="action-btn btn-add" id="add-point-btn">
+                    <span style="font-size: 1.3rem;">+</span> Adicionar Ponto
+                </button>
+                <button class="action-btn btn-clear" id="clear-btn">
+                    🗑️ Limpar
+                </button>
+                <button class="action-btn btn-switch" id="switch-camera-btn">
+                    🔄 Câmera
+                </button>
+                <button class="action-btn btn-reset" id="reset-btn">
+                    🔄 Reiniciar Tudo
+                </button>
             </div>
             
             <div class="instructions">
-                <h3><i class="fas fa-info-circle"></i> Como usar:</h3>
-                <ol>
-                    <li>Posicione o celular paralelo ao objeto que deseja medir</li>
-                    <li>Toque em "Adicionar Ponto" para marcar o início da medição</li>
-                    <li>Mova o celular até o próximo ponto e toque novamente</li>
-                    <li>A distância será calculada automaticamente</li>
-                    <li>Para medir área, adicione pelo menos 3 pontos</li>
-                </ol>
-                <p class="warning">
-                    <i class="fas fa-exclamation-triangle"></i> Nota: Esta é uma estimativa. Para medidas precisas, use uma trena física.
+                <h3>📋 Como usar:</h3>
+                <ul>
+                    <li>1. Aponte a câmera para o que quer medir</li>
+                    <li>2. Toque em "Adicionar Ponto" para marcar</li>
+                    <li>3. Mova o celular e adicione mais pontos</li>
+                    <li>4. A distância aparece automaticamente</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Modal de permissão da câmera -->
+        <div class="permission-modal" id="permission-modal">
+            <div class="permission-content">
+                <h2>📷 Permissão da Câmera</h2>
+                <p>Para usar a trena virtual, precisamos acessar sua câmera.</p>
+                <p>O acesso é necessário para medir objetos através da tela.</p>
+                <button class="permission-btn" id="start-camera-btn">
+                    Permitir Câmera
+                </button>
+                <p style="margin-top: 15px; font-size: 0.8rem; opacity: 0.7;">
+                    Sua privacidade é importante. Não gravamos nem enviamos suas imagens.
                 </p>
             </div>
-        </main>
-        
-        <footer>
-            <p>Trena Virtual v1.0 | Use como referência | Desenvolvido para demonstração</p>
-        </footer>
+        </div>
     </div>
 
     <script>
-        // Elementos da interface
+        // Elementos principais
         const cameraView = document.getElementById('camera-view');
-        const measurementOverlay = document.getElementById('measurement-overlay');
+        const measureOverlay = document.getElementById('measure-overlay');
         const distanceValue = document.getElementById('distance-value');
         const areaValue = document.getElementById('area-value');
         const pointsValue = document.getElementById('points-value');
+        const permissionModal = document.getElementById('permission-modal');
+        
+        // Botões
+        const startCameraBtn = document.getElementById('start-camera-btn');
         const addPointBtn = document.getElementById('add-point-btn');
         const clearBtn = document.getElementById('clear-btn');
-        const toggleCameraBtn = document.getElementById('toggle-camera-btn');
+        const switchCameraBtn = document.getElementById('switch-camera-btn');
         const resetBtn = document.getElementById('reset-btn');
         
-        // Variáveis de estado
-        let stream = null;
-        let isCameraOn = false;
+        // Estado da aplicação
+        let cameraStream = null;
+        let isCameraActive = false;
         let isFrontCamera = false;
-        let measurementPoints = [];
-        let measurementLines = [];
-        let pointCounter = 0;
+        let points = [];
+        let lines = [];
+        let labels = [];
+        let pointCount = 0;
         
-        // Inicializar a câmera
-        async function initCamera() {
+        // Iniciar câmera
+        async function startCamera() {
             try {
+                // Pedir permissão da câmera
                 const constraints = {
                     video: {
                         facingMode: isFrontCamera ? "user" : "environment",
@@ -396,182 +441,150 @@
                     }
                 };
                 
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                cameraView.srcObject = stream;
-                isCameraOn = true;
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraView.srcObject = cameraStream;
+                isCameraActive = true;
                 
-                // Ajustar orientação da câmera baseado na orientação da tela
-                handleOrientation();
+                // Esconder modal de permissão
+                permissionModal.classList.add('hidden');
                 
-            } catch (err) {
-                console.error("Erro ao acessar a câmera:", err);
+                // Adicionar efeito de carregamento
+                addPointBtn.innerHTML = '<span style="font-size: 1.3rem;">+</span> Pronto para medir!';
+                setTimeout(() => {
+                    addPointBtn.innerHTML = '<span style="font-size: 1.3rem;">+</span> Adicionar Ponto';
+                }, 2000);
+                
+            } catch (error) {
+                console.error("Erro na câmera:", error);
                 alert("Não foi possível acessar a câmera. Verifique as permissões.");
             }
         }
         
-        // Lidar com a orientação da tela
-        function handleOrientation() {
-            if (screen.orientation) {
-                screen.orientation.addEventListener("change", () => {
-                    // Atualizar a visualização da câmera baseado na orientação
-                    setTimeout(() => {
-                        cameraView.style.transform = getCameraTransform();
-                    }, 300);
-                });
-            }
-            
-            window.addEventListener("orientationchange", () => {
-                setTimeout(() => {
-                    cameraView.style.transform = getCameraTransform();
-                }, 300);
-            });
-        }
-        
-        // Obter transformação da câmera baseado na orientação
-        function getCameraTransform() {
-            const orientation = window.screen.orientation ? window.screen.orientation.type : screen.orientation;
-            
-            if (orientation.includes("portrait")) {
-                return "";
-            } else {
-                return "scaleX(-1)";
-            }
-        }
-        
-        // Alternar entre câmeras
-        async function toggleCamera() {
-            if (!isCameraOn) return;
-            
-            // Parar a câmera atual
-            stream.getTracks().forEach(track => track.stop());
-            
-            // Alternar entre frontal e traseira
-            isFrontCamera = !isFrontCamera;
-            
-            // Reiniciar a câmera
-            await initCamera();
-        }
-        
         // Adicionar ponto de medição
-        function addMeasurementPoint() {
-            pointCounter++;
+        function addPoint() {
+            if (!isCameraActive) {
+                alert("Por favor, permita o acesso à câmera primeiro.");
+                return;
+            }
             
-            // Criar um ponto de medição
-            const point = document.createElement('div');
-            point.className = 'measurement-point pulse';
-            point.id = `point-${pointCounter}`;
-            point.dataset.index = measurementPoints.length;
+            pointCount++;
+            const pointId = `point-${pointCount}`;
             
-            // Posicionar no centro da tela (onde está o retículo)
-            point.style.top = '50%';
-            point.style.left = '50%';
+            // Criar elemento do ponto
+            const pointElement = document.createElement('div');
+            pointElement.className = 'measure-point pulse';
+            pointElement.id = pointId;
+            
+            // Posicionar no centro (onde está o retículo)
+            pointElement.style.left = '50%';
+            pointElement.style.top = '50%';
+            
+            // Adicionar número do ponto
+            const pointNumber = document.createElement('div');
+            pointNumber.className = 'point-number';
+            pointNumber.textContent = pointCount;
+            pointElement.appendChild(pointNumber);
             
             // Adicionar ao overlay
-            measurementOverlay.appendChild(point);
+            measureOverlay.appendChild(pointElement);
             
-            // Adicionar ao array de pontos
-            measurementPoints.push({
-                id: pointCounter,
-                element: point,
-                x: 50, // Percentual da tela
-                y: 50  // Percentual da tela
-            });
+            // Salvar ponto
+            const point = {
+                id: pointId,
+                element: pointElement,
+                number: pointCount,
+                x: 50, // Posição X em porcentagem
+                y: 50  // Posição Y em porcentagem
+            };
+            
+            points.push(point);
             
             // Atualizar contador de pontos
-            updatePointsCount();
+            updatePointsDisplay();
             
-            // Se houver pelo menos 2 pontos, criar uma linha entre eles
-            if (measurementPoints.length >= 2) {
-                createMeasurementLine(
-                    measurementPoints[measurementPoints.length - 2],
-                    measurementPoints[measurementPoints.length - 1]
-                );
+            // Se tiver pelo menos 2 pontos, criar linha
+            if (points.length >= 2) {
+                createLine(points[points.length - 2], point);
             }
             
-            // Se houver pelo menos 3 pontos, calcular área
-            if (measurementPoints.length >= 3) {
+            // Se tiver pelo menos 3 pontos, calcular área
+            if (points.length >= 3) {
                 calculateArea();
             }
             
-            // Atualizar a distância total
-            calculateTotalDistance();
+            // Calcular distância total
+            calculateDistance();
         }
         
-        // Criar linha de medição entre dois pontos
-        function createMeasurementLine(pointA, pointB) {
-            // Calcular distância e ângulo entre os pontos
+        // Criar linha entre dois pontos
+        function createLine(pointA, pointB) {
+            // Calcular distância e ângulo
             const dx = pointB.x - pointA.x;
             const dy = pointB.y - pointA.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             const angle = Math.atan2(dy, dx) * 180 / Math.PI;
             
-            // Criar elemento de linha
-            const line = document.createElement('div');
-            line.className = 'measurement-line';
-            line.id = `line-${pointA.id}-${pointB.id}`;
+            // Criar linha
+            const lineId = `line-${pointA.number}-${pointB.number}`;
+            const lineElement = document.createElement('div');
+            lineElement.className = 'measure-line';
+            lineElement.id = lineId;
             
-            // Posicionar a linha
-            line.style.width = `${distance}%`;
-            line.style.top = `${pointA.y}%`;
-            line.style.left = `${pointA.x}%`;
-            line.style.transform = `rotate(${angle}deg)`;
+            // Posicionar linha
+            lineElement.style.width = `${distance}%`;
+            lineElement.style.left = `${pointA.x}%`;
+            lineElement.style.top = `${pointA.y}%`;
+            lineElement.style.transform = `rotate(${angle}deg)`;
             
-            // Adicionar ao overlay
-            measurementOverlay.appendChild(line);
+            measureOverlay.appendChild(lineElement);
+            lines.push(lineElement);
             
-            // Adicionar ao array de linhas
-            measurementLines.push(line);
-            
-            // Adicionar etiqueta de distância no meio da linha
-            addDistanceLabel(line, pointA, pointB, distance, angle);
+            // Adicionar rótulo de distância
+            addDistanceLabel(pointA, pointB, distance, angle);
         }
         
-        // Adicionar etiqueta de distância à linha
-        function addDistanceLabel(line, pointA, pointB, distance, angle) {
-            const label = document.createElement('div');
-            label.className = 'distance-label';
-            label.textContent = `${(distance / 10).toFixed(2)}m`;
-            
-            // Posicionar a etiqueta no meio da linha
+        // Adicionar rótulo de distância
+        function addDistanceLabel(pointA, pointB, distance, angle) {
             const midX = (pointA.x + pointB.x) / 2;
             const midY = (pointA.y + pointB.y) / 2;
             
-            label.style.position = 'absolute';
-            label.style.top = `${midY}%`;
-            label.style.left = `${midX}%`;
-            label.style.transform = `translate(-50%, -50%) rotate(${-angle}deg)`;
-            label.style.color = '#00ff88';
-            label.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            label.style.padding = '3px 8px';
-            label.style.borderRadius = '10px';
-            label.style.fontSize = '14px';
-            label.style.fontWeight = 'bold';
-            label.style.zIndex = '100';
+            const labelElement = document.createElement('div');
+            labelElement.className = 'distance-label';
             
-            measurementOverlay.appendChild(label);
+            // Converter para metros (valor simulado - na prática precisa de calibração)
+            const distanceInMeters = (distance / 50).toFixed(2);
+            labelElement.textContent = `${distanceInMeters}m`;
+            
+            // Posicionar no meio da linha
+            labelElement.style.left = `${midX}%`;
+            labelElement.style.top = `${midY}%`;
+            
+            // Rotacionar na direção oposta para ficar legível
+            labelElement.style.transform = `translate(-50%, -50%) rotate(${-angle}deg)`;
+            
+            measureOverlay.appendChild(labelElement);
+            labels.push(labelElement);
         }
         
         // Calcular distância total
-        function calculateTotalDistance() {
-            if (measurementPoints.length < 2) {
+        function calculateDistance() {
+            if (points.length < 2) {
                 distanceValue.textContent = '0.00';
                 return;
             }
             
             let totalDistance = 0;
             
-            // Calcular a soma das distâncias entre todos os pontos consecutivos
-            for (let i = 1; i < measurementPoints.length; i++) {
-                const pointA = measurementPoints[i-1];
-                const pointB = measurementPoints[i];
+            for (let i = 1; i < points.length; i++) {
+                const pointA = points[i-1];
+                const pointB = points[i];
                 
                 const dx = pointB.x - pointA.x;
                 const dy = pointB.y - pointA.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const segmentDistance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Converter para metros (considerando uma escala aproximada)
-                // Na prática, aqui seria necessário calibrar com um objeto de referência
-                totalDistance += distance / 10;
+                // Converter para metros (valor simulado)
+                totalDistance += segmentDistance / 50;
             }
             
             distanceValue.textContent = totalDistance.toFixed(2);
@@ -579,102 +592,149 @@
         
         // Calcular área
         function calculateArea() {
-            if (measurementPoints.length < 3) {
+            if (points.length < 3) {
                 areaValue.textContent = '0.00';
                 return;
             }
             
-            // Usar fórmula do polígono (Shoelace formula) para calcular área
             let area = 0;
             
-            for (let i = 0; i < measurementPoints.length; i++) {
-                const j = (i + 1) % measurementPoints.length;
-                area += measurementPoints[i].x * measurementPoints[j].y;
-                area -= measurementPoints[j].x * measurementPoints[i].y;
+            // Usar fórmula do polígono
+            for (let i = 0; i < points.length; i++) {
+                const j = (i + 1) % points.length;
+                area += points[i].x * points[j].y;
+                area -= points[j].x * points[i].y;
             }
             
             area = Math.abs(area / 2);
             
-            // Converter para metros quadrados (escala aproximada)
-            // Na prática, aqui seria necessário calibrar com um objeto de referência
-            const areaInMeters = area / 100;
-            
-            areaValue.textContent = areaInMeters.toFixed(2);
+            // Converter para metros quadrados (valor simulado)
+            const areaInM2 = (area / 2500).toFixed(2);
+            areaValue.textContent = areaInM2;
         }
         
         // Atualizar contador de pontos
-        function updatePointsCount() {
-            pointsValue.textContent = measurementPoints.length;
+        function updatePointsDisplay() {
+            pointsValue.textContent = points.length;
         }
         
-        // Limpar todos os pontos e linhas
+        // Limpar medições
         function clearMeasurements() {
-            // Remover todos os pontos
-            measurementPoints.forEach(point => {
-                if (point.element && point.element.parentNode) {
+            // Remover todos os elementos
+            points.forEach(point => {
+                if (point.element.parentNode) {
                     point.element.parentNode.removeChild(point.element);
                 }
             });
             
-            // Remover todas as linhas
-            measurementLines.forEach(line => {
+            lines.forEach(line => {
                 if (line.parentNode) {
                     line.parentNode.removeChild(line);
                 }
             });
             
-            // Remover todas as etiquetas de distância
-            const labels = document.querySelectorAll('.distance-label');
             labels.forEach(label => {
                 if (label.parentNode) {
                     label.parentNode.removeChild(label);
                 }
             });
             
-            // Resetar arrays
-            measurementPoints = [];
-            measurementLines = [];
-            pointCounter = 0;
+            // Limpar arrays
+            points = [];
+            lines = [];
+            labels = [];
+            pointCount = 0;
             
-            // Atualizar valores na interface
+            // Atualizar display
             distanceValue.textContent = '0.00';
             areaValue.textContent = '0.00';
-            updatePointsCount();
+            updatePointsDisplay();
         }
         
-        // Reiniciar completamente (câmera e medições)
+        // Alternar entre câmeras
+        async function switchCamera() {
+            if (!cameraStream) return;
+            
+            // Parar câmera atual
+            cameraStream.getTracks().forEach(track => track.stop());
+            
+            // Alternar tipo de câmera
+            isFrontCamera = !isFrontCamera;
+            
+            // Limpar medições antigas
+            clearMeasurements();
+            
+            // Iniciar nova câmera
+            await startCamera();
+            
+            // Feedback visual
+            switchCameraBtn.innerHTML = isFrontCamera ? '🔙 Traseira' : '🔄 Câmera';
+            setTimeout(() => {
+                switchCameraBtn.innerHTML = isFrontCamera ? '🔙 Traseira' : '🔄 Câmera';
+            }, 2000);
+        }
+        
+        // Reiniciar tudo
         function resetAll() {
             clearMeasurements();
             
-            if (isCameraOn && stream) {
-                stream.getTracks().forEach(track => track.stop());
-                isCameraOn = false;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+                isCameraActive = false;
             }
             
-            // Reiniciar a câmera
-            setTimeout(() => {
-                initCamera();
-            }, 500);
+            // Mostrar modal de permissão novamente
+            permissionModal.classList.remove('hidden');
+            isFrontCamera = false;
+            switchCameraBtn.innerHTML = '🔄 Câmera';
         }
         
         // Event Listeners
-        addPointBtn.addEventListener('click', addMeasurementPoint);
+        startCameraBtn.addEventListener('click', startCamera);
+        addPointBtn.addEventListener('click', addPoint);
         clearBtn.addEventListener('click', clearMeasurements);
-        toggleCameraBtn.addEventListener('click', toggleCamera);
+        switchCameraBtn.addEventListener('click', switchCamera);
         resetBtn.addEventListener('click', resetAll);
         
-        // Inicializar a câmera quando a página carregar
-        window.addEventListener('DOMContentLoaded', initCamera);
+        // Feedback tátil para botões (para mobile)
+        const buttons = document.querySelectorAll('.action-btn, .permission-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('touchstart', function() {
+                this.style.opacity = '0.8';
+            });
+            
+            btn.addEventListener('touchend', function() {
+                this.style.opacity = '1';
+            });
+        });
         
-        // Pausar a câmera quando a página não estiver visível
+        // Verificar se a câmera já está disponível
+        window.addEventListener('DOMContentLoaded', () => {
+            // Em alguns dispositivos, podemos verificar permissões existentes
+            // Mas por segurança, sempre mostramos o modal primeiro
+        });
+        
+        // Pausar câmera quando a página não estiver visível
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden && stream) {
-                stream.getTracks().forEach(track => track.stop());
-                isCameraOn = false;
-            } else if (!document.hidden && !isCameraOn) {
-                initCamera();
+            if (document.hidden && cameraStream) {
+                cameraStream.getTracks().forEach(track => track.pause());
+            } else if (!document.hidden && cameraStream) {
+                cameraStream.getTracks().forEach(track => track.resume());
             }
         });
+        
+        // Prevenir zoom com dois dedos
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
+        // Prevenir scroll na página
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>
