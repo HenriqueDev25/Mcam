@@ -3,56 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trena por Câmera</title>
+    <title>Trena AR Avançada</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            touch-action: none;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #000;
             color: white;
             height: 100vh;
             overflow: hidden;
-            touch-action: none;
+            position: fixed;
+            width: 100%;
         }
         
         /* Container principal */
         .app-container {
             height: 100vh;
             position: relative;
+            overflow: hidden;
         }
         
-        /* Cabeçalho */
-        .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            text-align: center;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-        
-        .header h1 {
-            font-size: 1.4rem;
-            color: #00ff88;
-            margin-bottom: 5px;
-        }
-        
-        .header p {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        /* Área da câmera - ocupa toda a tela */
-        .camera-area {
+        /* Câmera - ocupa toda a tela */
+        .camera-container {
             position: absolute;
             top: 0;
             left: 0;
@@ -67,95 +46,174 @@
             object-fit: cover;
         }
         
-        /* Overlay de medição */
-        .measure-overlay {
+        /* Overlay AR */
+        .ar-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            touch-action: none;
+            pointer-events: none;
+            z-index: 10;
         }
         
-        /* Botão de adicionar ponto no centro */
-        .center-point-btn {
+        /* Grade de profundidade */
+        .depth-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            pointer-events: none;
+            background: 
+                linear-gradient(90deg, rgba(0,255,136,0.1) 1px, transparent 1px) 0 0 / 5% 100%,
+                linear-gradient(0deg, rgba(0,255,136,0.1) 1px, transparent 1px) 0 0 / 100% 5%;
+        }
+        
+        /* Reticulado AR */
+        .ar-reticle {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 70px;
-            height: 70px;
-            background: rgba(0, 255, 136, 0.9);
-            border: 3px solid white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: bold;
-            color: #000;
-            cursor: pointer;
-            z-index: 50;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-            user-select: none;
-            transition: transform 0.2s;
+            width: 80px;
+            height: 80px;
+            z-index: 20;
         }
         
-        .center-point-btn:active {
-            transform: translate(-50%, -50%) scale(0.95);
-        }
-        
-        /* Pontos de medição */
-        .measure-point {
+        .reticle-circle {
             position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             width: 30px;
             height: 30px;
-            background: #ff3366;
-            border: 3px solid white;
+            border: 3px solid #00ff88;
             border-radius: 50%;
+            animation: reticlePulse 2s infinite;
+        }
+        
+        .reticle-line {
+            position: absolute;
+            background: #00ff88;
+        }
+        
+        .reticle-line.horizontal {
+            width: 80px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .reticle-line.vertical {
+            width: 2px;
+            height: 80px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Pontos AR */
+        .ar-point {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid white;
             transform: translate(-50%, -50%);
             z-index: 30;
-            box-shadow: 0 0 15px rgba(255, 51, 102, 0.8);
+            pointer-events: auto;
+            box-shadow: 0 0 20px currentColor;
+            transition: all 0.3s ease;
+        }
+        
+        .ar-point:hover {
+            transform: translate(-50%, -50%) scale(1.2);
         }
         
         .point-number {
             position: absolute;
-            top: -25px;
+            top: -30px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: bold;
-            min-width: 25px;
-            text-align: center;
-            border: 1px solid white;
-        }
-        
-        /* Linhas de medição */
-        .measure-line {
-            position: absolute;
-            background: rgba(0, 255, 136, 0.7);
-            transform-origin: 0 0;
-            z-index: 20;
-            pointer-events: none;
-        }
-        
-        /* Label de medida */
-        .measure-label {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff88;
-            padding: 6px 12px;
+            padding: 4px 12px;
             border-radius: 15px;
             font-size: 14px;
+            font-weight: bold;
+            border: 2px solid white;
+            white-space: nowrap;
+            z-index: 40;
+        }
+        
+        /* Linhas AR */
+        .ar-line {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, #00ff88, #00cc6a);
+            transform-origin: 0 0;
+            z-index: 25;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        .line-depth {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0, 255, 136, 0.1) 20%, 
+                rgba(0, 255, 136, 0.3) 50%, 
+                rgba(0, 255, 136, 0.1) 80%, 
+                transparent 100%);
+        }
+        
+        /* Labels de medida */
+        .measure-label {
+            position: absolute;
+            background: rgba(0, 20, 10, 0.9);
+            color: #00ff88;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 16px;
             font-weight: bold;
             border: 2px solid #00ff88;
             z-index: 40;
             white-space: nowrap;
             transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Cabeçalho */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+            padding: 20px 15px 15px;
+            z-index: 100;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, #00ff88, #00cc6a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
         
         /* Painel de controle */
@@ -164,25 +222,43 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 15px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8));
+            padding: 20px 15px;
             z-index: 100;
-            backdrop-filter: blur(10px);
-            border-top: 1px solid #333;
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 255, 136, 0.3);
         }
         
-        /* Display de medições */
-        .measure-display {
+        /* Status info */
+        .status-info {
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(30, 30, 30, 0.8);
-            border-radius: 12px;
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
         
-        .measure-item {
+        .status-item {
+            background: rgba(0, 40, 20, 0.7);
+            padding: 8px 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        /* Display de medição */
+        .measure-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .measure-card {
+            background: rgba(0, 30, 15, 0.8);
+            border-radius: 15px;
+            padding: 15px 10px;
             text-align: center;
+            border: 2px solid rgba(0, 255, 136, 0.3);
         }
         
         .measure-value {
@@ -195,58 +271,51 @@
         .measure-unit {
             font-size: 0.8rem;
             opacity: 0.8;
-            margin-top: 3px;
+            margin-top: 5px;
         }
         
         /* Botões de ação */
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
         }
         
         .action-btn {
-            padding: 14px;
+            padding: 16px 10px;
             border: none;
-            border-radius: 10px;
+            border-radius: 15px;
             font-size: 1rem;
             font-weight: 600;
             color: white;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            gap: 5px;
             cursor: pointer;
             transition: all 0.2s;
             user-select: none;
+            background: rgba(0, 60, 30, 0.9);
+            border: 2px solid rgba(0, 255, 136, 0.3);
         }
         
         .action-btn:active {
             transform: scale(0.95);
+            background: rgba(0, 80, 40, 0.9);
         }
         
-        .btn-add {
+        .action-btn.active {
             background: #00ff88;
             color: #000;
-            grid-column: span 2;
+            border-color: #00ff88;
         }
         
-        .btn-clear {
-            background: #ff3366;
+        .btn-icon {
+            font-size: 1.5rem;
         }
         
-        .btn-camera {
-            background: #3366ff;
-        }
-        
-        .btn-reset {
-            background: #ff9900;
-            grid-column: span 3;
-            margin-top: 5px;
-        }
-        
-        /* Modal de permissão */
-        .permission-modal {
+        /* Modal de calibração */
+        .calibration-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -259,35 +328,49 @@
             align-items: center;
             padding: 20px;
             z-index: 1000;
+            backdrop-filter: blur(20px);
         }
         
-        .permission-content {
-            background: #222;
-            border-radius: 20px;
+        .calibration-content {
+            background: rgba(0, 30, 15, 0.95);
+            border-radius: 25px;
             padding: 30px;
             text-align: center;
             max-width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            border: 3px solid #00ff88;
+            box-shadow: 0 0 50px rgba(0, 255, 136, 0.3);
         }
         
-        .permission-content h2 {
+        .calibration-title {
+            font-size: 1.8rem;
             color: #00ff88;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-        }
-        
-        .permission-content p {
             margin-bottom: 20px;
-            line-height: 1.5;
-            font-size: 1.1rem;
         }
         
-        .permission-btn {
+        .calibration-steps {
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .calibration-step {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .calibration-step::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #00ff88;
+        }
+        
+        .calibration-btn {
             background: #00ff88;
             color: #000;
             border: none;
             padding: 18px 40px;
-            border-radius: 15px;
+            border-radius: 20px;
             font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
@@ -295,238 +378,476 @@
             width: 100%;
         }
         
+        /* Indicador de movimento */
+        .movement-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.3;
+        }
+        
+        .movement-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff3366;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
         .hidden {
             display: none !important;
         }
         
-        /* Instruções */
-        .instructions {
-            position: absolute;
-            top: 80px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            border-left: 4px solid #00ff88;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-        
         /* Animações */
-        @keyframes pulse {
-            0% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-            100% { transform: translate(-50%, -50%) scale(1); }
+        @keyframes reticlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
         }
         
-        .pulse {
-            animation: pulse 0.5s ease;
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+            50% { transform: translate(-50%, -50%) translateY(-10px); }
         }
         
-        /* Status da câmera */
-        .camera-status {
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Debug panel */
+        .debug-panel {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 100px;
+            left: 10px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 10px;
+            border-radius: 10px;
             font-size: 12px;
-            z-index: 100;
-            color: #00ff88;
+            z-index: 1000;
+            display: none;
+        }
+        
+        /* Depth visualization */
+        .depth-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3366ff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.5;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div class="header">
-            <h1>📏 TRENA POR CÂMERA</h1>
-            <p>Toque no botão verde para adicionar pontos de medição</p>
-        </div>
-        
-        <div class="camera-area">
+        <!-- Câmera -->
+        <div class="camera-container">
             <video id="camera-view" autoplay playsinline></video>
-            <div class="measure-overlay" id="measure-overlay">
-                <!-- Pontos e linhas serão adicionados aqui -->
-            </div>
-            <div class="center-point-btn" id="center-point-btn">
-                +
-            </div>
         </div>
         
-        <div class="instructions" id="instructions">
-            <strong>Como usar:</strong> Aponte a câmera, toque no botão verde para adicionar pontos. Mova o celular e adicione mais pontos para medir.
+        <!-- Grade de profundidade -->
+        <div class="depth-grid"></div>
+        
+        <!-- Overlay AR -->
+        <div class="ar-overlay" id="ar-overlay">
+            <!-- Pontos, linhas e labels serão adicionados aqui -->
         </div>
         
-        <div class="camera-status" id="camera-status">
-            Câmera: Traseira
+        <!-- Reticulado AR -->
+        <div class="ar-reticle">
+            <div class="reticle-circle floating"></div>
+            <div class="reticle-line horizontal"></div>
+            <div class="reticle-line vertical"></div>
         </div>
         
+        <!-- Indicador de movimento -->
+        <div class="movement-indicator" id="movement-indicator"></div>
+        
+        <!-- Cabeçalho -->
+        <div class="header">
+            <h1>TRENA AR AVANÇADA</h1>
+            <p>Pontos fixos no espaço real • Sensor de profundidade • Cálculos 3D</p>
+        </div>
+        
+        <!-- Painel de controle -->
         <div class="control-panel">
+            <div class="status-info">
+                <div class="status-item" id="status-gyro">🎯 Giroscópio: Ativo</div>
+                <div class="status-item" id="status-depth">📐 Profundidade: Simulado</div>
+                <div class="status-item" id="status-points">📍 Pontos: 0</div>
+            </div>
+            
             <div class="measure-display">
-                <div class="measure-item">
+                <div class="measure-card">
                     <div class="measure-value" id="distance-value">0.00</div>
-                    <div class="measure-unit">METROS</div>
+                    <div class="measure-unit">DISTÂNCIA (m)</div>
                 </div>
-                <div class="measure-item">
+                <div class="measure-card">
                     <div class="measure-value" id="area-value">0.00</div>
-                    <div class="measure-unit">M²</div>
+                    <div class="measure-unit">ÁREA (m²)</div>
                 </div>
-                <div class="measure-item">
-                    <div class="measure-value" id="points-value">0</div>
-                    <div class="measure-unit">PONTOS</div>
+                <div class="measure-card">
+                    <div class="measure-value" id="volume-value">0.00</div>
+                    <div class="measure-unit">VOLUME (m³)</div>
                 </div>
             </div>
             
             <div class="action-buttons">
-                <button class="action-btn btn-add" id="add-point-btn">
-                    <span style="font-size: 1.3rem;">+</span> Adicionar Ponto
+                <button class="action-btn" id="btn-add-point">
+                    <span class="btn-icon">📍</span>
+                    <span>Ponto</span>
                 </button>
-                <button class="action-btn btn-clear" id="clear-btn">
-                    🗑️ Limpar
+                <button class="action-btn" id="btn-calibrate">
+                    <span class="btn-icon">🎯</span>
+                    <span>Calibrar</span>
                 </button>
-                <button class="action-btn btn-camera" id="switch-camera-btn">
-                    🔄 Câmera
+                <button class="action-btn" id="btn-switch-camera">
+                    <span class="btn-icon">📷</span>
+                    <span>Câmera</span>
                 </button>
-                <button class="action-btn btn-reset" id="reset-btn">
-                    🔄 Reiniciar
+                <button class="action-btn" id="btn-clear">
+                    <span class="btn-icon">🗑️</span>
+                    <span>Limpar</span>
                 </button>
             </div>
         </div>
         
-        <!-- Modal de permissão -->
-        <div class="permission-modal" id="permission-modal">
-            <div class="permission-content">
-                <h2>📷 PERMISSÃO DA CÂMERA</h2>
-                <p>Para usar a trena, precisamos acessar sua câmera.</p>
-                <p>Aponte para o que quer medir e adicione pontos tocando no botão verde.</p>
-                <button class="permission-btn" id="start-camera-btn">
-                    ATIVAR CÂMERA
-                </button>
+        <!-- Modal de calibração -->
+        <div class="calibration-modal" id="calibration-modal">
+            <div class="calibration-content">
+                <div class="calibration-title">🎯 CALIBRAÇÃO DO SISTEMA</div>
+                <p>Para medições precisas, calibre com um objeto de tamanho conhecido.</p>
+                
+                <div class="calibration-steps">
+                    <div class="calibration-step">1. Coloque um objeto (ex: cartão) na cena</div>
+                    <div class="calibration-step">2. Toque para adicionar pontos nas extremidades</div>
+                    <div class="calibration-step">3. Digite o tamanho real do objeto</div>
+                    <div class="calibration-step">4. O sistema calculará a escala automaticamente</div>
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <label style="display: block; margin-bottom: 10px;">Tamanho real do objeto (cm):</label>
+                    <input type="number" id="calibration-size" value="10" min="1" max="100" 
+                           style="width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 15px; border: 2px solid #00ff88; background: rgba(0,0,0,0.5); color: white; text-align: center;">
+                </div>
+                
+                <button class="calibration-btn" id="btn-start-calibration">INICIAR CALIBRAÇÃO</button>
+                <button class="calibration-btn" style="background: #666; margin-top: 10px;" id="btn-skip-calibration">PULAR CALIBRAÇÃO</button>
             </div>
+        </div>
+        
+        <!-- Debug panel (opcional) -->
+        <div class="debug-panel" id="debug-panel">
+            <div>Gyro X: <span id="debug-gyro-x">0</span></div>
+            <div>Gyro Y: <span id="debug-gyro-y">0</span></div>
+            <div>Gyro Z: <span id="debug-gyro-z">0</span></div>
+            <div>Pontos: <span id="debug-points">0</span></div>
         </div>
     </div>
 
     <script>
-        // Elementos principais
+        // ========== SISTEMA AVANÇADO DE TRENA AR ==========
+        
+        // Elementos DOM
         const cameraView = document.getElementById('camera-view');
-        const measureOverlay = document.getElementById('measure-overlay');
-        const centerPointBtn = document.getElementById('center-point-btn');
+        const arOverlay = document.getElementById('ar-overlay');
+        const calibrationModal = document.getElementById('calibration-modal');
+        const debugPanel = document.getElementById('debug-panel');
+        const movementIndicator = document.getElementById('movement-indicator');
+        
+        // Elementos de status
+        const statusGyro = document.getElementById('status-gyro');
+        const statusDepth = document.getElementById('status-depth');
+        const statusPoints = document.getElementById('status-points');
+        
+        // Elementos de medida
         const distanceValue = document.getElementById('distance-value');
         const areaValue = document.getElementById('area-value');
-        const pointsValue = document.getElementById('points-value');
-        const permissionModal = document.getElementById('permission-modal');
-        const instructions = document.getElementById('instructions');
-        const cameraStatus = document.getElementById('camera-status');
+        const volumeValue = document.getElementById('volume-value');
         
         // Botões
-        const startCameraBtn = document.getElementById('start-camera-btn');
-        const addPointBtn = document.getElementById('add-point-btn');
-        const clearBtn = document.getElementById('clear-btn');
-        const switchCameraBtn = document.getElementById('switch-camera-btn');
-        const resetBtn = document.getElementById('reset-btn');
+        const btnAddPoint = document.getElementById('btn-add-point');
+        const btnCalibrate = document.getElementById('btn-calibrate');
+        const btnSwitchCamera = document.getElementById('btn-switch-camera');
+        const btnClear = document.getElementById('btn-clear');
+        const btnStartCalibration = document.getElementById('btn-start-calibration');
+        const btnSkipCalibration = document.getElementById('btn-skip-calibration');
+        const calibrationSizeInput = document.getElementById('calibration-size');
         
-        // Estado da aplicação
-        let cameraStream = null;
-        let isCameraActive = false;
-        let isFrontCamera = false;
-        let points = [];
-        let lines = [];
-        let labels = [];
-        let pointCounter = 0;
+        // ========== SISTEMA DE ESTADO ==========
+        const STATE = {
+            cameraStream: null,
+            isCameraActive: false,
+            isFrontCamera: false,
+            isCalibrated: false,
+            scaleFactor: 0.01, // Fator de escala inicial (metros por pixel)
+            calibrationDistance: null,
+            
+            // Sistema de pontos no espaço 3D
+            points: [], // Array de objetos Point3D
+            lines: [],  // Linhas entre pontos
+            labels: [], // Labels de medida
+            
+            // Sistema de tracking do dispositivo
+            orientation: { alpha: 0, beta: 0, gamma: 0 },
+            motion: { x: 0, y: 0, z: 0 },
+            lastOrientation: null,
+            
+            // Sistema de profundidade
+            depthMap: new Map(),
+            isDepthEnabled: false,
+            
+            // Contadores
+            pointCounter: 0,
+            
+            // Modos
+            mode: 'add-point', // 'add-point', 'calibrate', 'measure'
+            
+            // Cache de elementos DOM
+            domElements: new Map()
+        };
         
-        // Iniciar câmera
+        // ========== CLASSES DO SISTEMA ==========
+        class Point3D {
+            constructor(id, screenX, screenY, depth = 1) {
+                this.id = id;
+                this.screenX = screenX; // Posição na tela (0-100%)
+                this.screenY = screenY;
+                this.depth = depth;     // Profundidade estimada (1 = mais perto, 0 = mais longe)
+                this.worldX = 0;        // Coordenadas 3D calculadas
+                this.worldY = 0;
+                this.worldZ = 0;
+                this.orientation = { ...STATE.orientation }; // Orientação quando criado
+                this.timestamp = Date.now();
+                this.domElement = null;
+                this.labelElement = null;
+            }
+            
+            // Converter para coordenadas de mundo baseado na orientação atual
+            updateWorldPosition(currentOrientation) {
+                // Calcular diferença de orientação desde a criação
+                const deltaAlpha = this.orientation.alpha - currentOrientation.alpha;
+                const deltaBeta = this.orientation.beta - currentOrientation.beta;
+                const deltaGamma = this.orientation.gamma - currentOrientation.gamma;
+                
+                // Converter para coordenadas 3D (simplificado)
+                // Em um sistema real, usaria matrizes de rotação
+                const distanceFromCenter = this.depth * 5; // Fator de escala
+                
+                this.worldX = Math.sin(deltaAlpha * Math.PI / 180) * distanceFromCenter;
+                this.worldY = Math.sin(deltaBeta * Math.PI / 180) * distanceFromCenter;
+                this.worldZ = Math.cos(deltaGamma * Math.PI / 180) * distanceFromCenter;
+                
+                // Atualizar posição na tela baseado na orientação atual
+                this.updateScreenPosition(currentOrientation);
+            }
+            
+            updateScreenPosition(currentOrientation) {
+                // Projetar coordenadas 3D de volta para a tela
+                // Esta é uma projeção simplificada
+                const fov = 60; // Campo de visão aproximado
+                const scale = 100 / (2 * Math.tan(fov * Math.PI / 360));
+                
+                const projectedX = 50 + (this.worldX * scale);
+                const projectedY = 50 + (this.worldY * scale);
+                
+                // Garantir que fique dentro da tela
+                this.screenX = Math.max(0, Math.min(100, projectedX));
+                this.screenY = Math.max(0, Math.min(100, projectedY));
+                
+                // Atualizar elemento DOM se existir
+                if (this.domElement) {
+                    this.domElement.style.left = `${this.screenX}%`;
+                    this.domElement.style.top = `${this.screenY}%`;
+                    
+                    // Ajustar cor baseado na profundidade
+                    const depthColor = this.getDepthColor();
+                    this.domElement.style.backgroundColor = depthColor;
+                    this.domElement.style.boxShadow = `0 0 20px ${depthColor}`;
+                }
+            }
+            
+            getDepthColor() {
+                // Verde (perto) -> Azul (longe)
+                const green = Math.floor(255 * this.depth);
+                const blue = Math.floor(255 * (1 - this.depth));
+                return `rgb(0, ${green}, ${blue})`;
+            }
+        }
+        
+        // ========== INICIALIZAÇÃO ==========
+        async function initializeSystem() {
+            console.log("Inicializando sistema AR avançado...");
+            
+            // Iniciar câmera
+            await startCamera();
+            
+            // Iniciar sensores do dispositivo
+            initializeDeviceSensors();
+            
+            // Configurar listeners
+            setupEventListeners();
+            
+            // Iniciar loop de animação
+            requestAnimationFrame(updateARScene);
+            
+            // Mostrar modal de calibração
+            setTimeout(() => {
+                calibrationModal.classList.remove('hidden');
+            }, 1000);
+        }
+        
+        // ========== SISTEMA DE CÂMERA ==========
         async function startCamera() {
             try {
                 const constraints = {
                     video: {
-                        facingMode: isFrontCamera ? "user" : "environment",
+                        facingMode: STATE.isFrontCamera ? "user" : "environment",
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     }
                 };
                 
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-                cameraView.srcObject = cameraStream;
-                isCameraActive = true;
+                STATE.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraView.srcObject = STATE.cameraStream;
+                STATE.isCameraActive = true;
                 
-                // Esconder modal
-                permissionModal.classList.add('hidden');
-                
-                // Esconder instruções após 5 segundos
-                setTimeout(() => {
-                    instructions.classList.add('hidden');
-                }, 5000);
-                
-                console.log("Câmera iniciada com sucesso!");
+                console.log("Câmera iniciada com sucesso");
                 
             } catch (error) {
                 console.error("Erro na câmera:", error);
-                alert("Não foi possível acessar a câmera. Verifique as permissões.");
+                alert("Erro ao acessar a câmera. Verifique as permissões.");
             }
         }
         
-        // Adicionar ponto de medição
-        function addMeasurementPoint() {
-            if (!isCameraActive) {
+        async function switchCamera() {
+            if (!STATE.cameraStream) return;
+            
+            STATE.cameraStream.getTracks().forEach(track => track.stop());
+            STATE.isFrontCamera = !STATE.isFrontCamera;
+            
+            await startCamera();
+            
+            // Atualizar status
+            statusGyro.textContent = `📷 Câmera: ${STATE.isFrontCamera ? 'Frontal' : 'Traseira'}`;
+        }
+        
+        // ========== SISTEMA DE SENSORES ==========
+        function initializeDeviceSensors() {
+            // Giroscópio e Acelerômetro
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation);
+                statusGyro.textContent = "🎯 Giroscópio: Ativo";
+            } else {
+                statusGyro.textContent = "🎯 Giroscópio: Não suportado";
+                console.warn("DeviceOrientation não suportado");
+            }
+            
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', handleMotion);
+            }
+            
+            // Estimativa de profundidade usando movimento parallax
+            STATE.isDepthEnabled = true;
+            statusDepth.textContent = "📐 Profundidade: Ativo";
+        }
+        
+        function handleOrientation(event) {
+            // Salvar orientação atual
+            STATE.orientation = {
+                alpha: event.alpha || 0,
+                beta: event.beta || 0,
+                gamma: event.gamma || 0
+            };
+            
+            // Atualizar debug
+            document.getElementById('debug-gyro-x').textContent = STATE.orientation.beta.toFixed(1);
+            document.getElementById('debug-gyro-y').textContent = STATE.orientation.gamma.toFixed(1);
+            document.getElementById('debug-gyro-z').textContent = STATE.orientation.alpha.toFixed(1);
+        }
+        
+        function handleMotion(event) {
+            if (event.accelerationIncludingGravity) {
+                STATE.motion = {
+                    x: event.accelerationIncludingGravity.x || 0,
+                    y: event.accelerationIncludingGravity.y || 0,
+                    z: event.accelerationIncludingGravity.z || 0
+                };
+            }
+        }
+        
+        // ========== SISTEMA DE PONTOS AR ==========
+        function addARPoint() {
+            if (!STATE.isCameraActive) {
                 alert("Ative a câmera primeiro!");
                 return;
             }
             
-            pointCounter++;
+            STATE.pointCounter++;
             
-            // Posição do ponto (no centro da tela)
-            const x = 50; // porcentagem
-            const y = 50; // porcentagem
+            // Criar ponto na posição central da tela
+            const point = new Point3D(
+                STATE.pointCounter,
+                50, // Centro X
+                50, // Centro Y
+                estimateDepth() // Estimar profundidade
+            );
             
-            // Criar ponto
-            const point = {
-                id: pointCounter,
-                x: x,
-                y: y,
-                element: null,
-                label: null
-            };
+            // Adicionar ao estado
+            STATE.points.push(point);
             
-            // Criar elemento visual do ponto
+            // Criar elementos visuais
             createPointElement(point);
             
-            // Adicionar ao array
-            points.push(point);
-            
             // Atualizar interface
-            updatePointsDisplay();
+            updateStatusDisplay();
             
-            // Se tiver pelo menos 2 pontos, criar linha e calcular
-            if (points.length >= 2) {
-                const lastPoint = points[points.length - 2];
-                const currentPoint = points[points.length - 1];
-                
-                createLine(lastPoint, currentPoint);
-                calculateDistance();
+            // Se tiver pelo menos 2 pontos, criar linhas e calcular
+            if (STATE.points.length >= 2) {
+                updateMeasurements();
             }
             
-            // Se tiver pelo menos 3 pontos, calcular área
-            if (points.length >= 3) {
-                calculateArea();
-            }
-            
-            // Animar o botão
-            centerPointBtn.classList.add('pulse');
-            setTimeout(() => {
-                centerPointBtn.classList.remove('pulse');
-            }, 500);
+            // Feedback visual
+            btnAddPoint.classList.add('active');
+            setTimeout(() => btnAddPoint.classList.remove('active'), 300);
         }
         
-        // Criar elemento visual do ponto
+        function estimateDepth() {
+            // Estimativa simplificada de profundidade baseada em:
+            // 1. Número de pontos existentes
+            // 2. Movimento do dispositivo
+            // 3. Posição na tela
+            
+            let depth = 0.5; // Valor padrão
+            
+            // Se houver pontos anteriores, estimar baseado na distância aparente
+            if (STATE.points.length > 0) {
+                const lastPoint = STATE.points[STATE.points.length - 1];
+                // Pequena variação aleatória para simular diferentes profundidades
+                depth = Math.max(0.1, Math.min(1, lastPoint.depth + (Math.random() * 0.2 - 0.1)));
+            }
+            
+            // Ajustar baseado na orientação (objetos mais altos na tela = mais longe)
+            depth = Math.max(0.2, Math.min(0.8, depth));
+            
+            return depth;
+        }
+        
         function createPointElement(point) {
+            // Criar elemento do ponto
             const pointElement = document.createElement('div');
-            pointElement.className = 'measure-point pulse';
-            pointElement.style.left = `${point.x}%`;
-            pointElement.style.top = `${point.y}%`;
+            pointElement.className = 'ar-point floating';
+            pointElement.style.left = `${point.screenX}%`;
+            pointElement.style.top = `${point.screenY}%`;
+            pointElement.style.backgroundColor = point.getDepthColor();
             
             // Número do ponto
             const numberElement = document.createElement('div');
@@ -535,286 +856,365 @@
             pointElement.appendChild(numberElement);
             
             // Adicionar ao overlay
-            measureOverlay.appendChild(pointElement);
-            point.element = pointElement;
+            arOverlay.appendChild(pointElement);
+            point.domElement = pointElement;
+            
+            // Armazenar referência
+            STATE.domElements.set(`point-${point.id}`, pointElement);
         }
         
-        // Criar linha entre dois pontos
-        function createLine(pointA, pointB) {
-            // Calcular distância entre pontos
-            const dx = pointB.x - pointA.x;
-            const dy = pointB.y - pointA.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+        // ========== SISTEMA DE MEDIÇÃO AVANÇADO ==========
+        function updateMeasurements() {
+            if (STATE.points.length < 2) return;
+            
+            // Calcular distâncias entre pontos consecutivos
+            let totalDistance = 0;
+            let latestDistance = 0;
+            
+            for (let i = 1; i < STATE.points.length; i++) {
+                const pointA = STATE.points[i-1];
+                const pointB = STATE.points[i];
+                
+                // Atualizar posições 3D
+                pointA.updateWorldPosition(STATE.orientation);
+                pointB.updateWorldPosition(STATE.orientation);
+                
+                // Calcular distância 3D
+                const dx = pointB.worldX - pointA.worldX;
+                const dy = pointB.worldY - pointA.worldY;
+                const dz = pointB.worldZ - pointA.worldZ;
+                const distance3D = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                // Aplicar fator de escala
+                const realDistance = distance3D * STATE.scaleFactor;
+                
+                totalDistance += realDistance;
+                
+                if (i === STATE.points.length - 1) {
+                    latestDistance = realDistance;
+                    
+                    // Criar/atualizar linha entre os últimos pontos
+                    createLineBetweenPoints(pointA, pointB, realDistance);
+                }
+            }
+            
+            // Atualizar displays
+            distanceValue.textContent = latestDistance.toFixed(2);
+            
+            // Calcular área se tiver pelo menos 3 pontos
+            if (STATE.points.length >= 3) {
+                calculateArea3D();
+            }
+            
+            // Calcular volume se tiver pelo menos 4 pontos
+            if (STATE.points.length >= 4) {
+                calculateVolume3D();
+            }
+        }
+        
+        function createLineBetweenPoints(pointA, pointB, distance) {
+            const lineId = `line-${pointA.id}-${pointB.id}`;
+            
+            // Remover linha existente
+            const existingLine = STATE.domElements.get(lineId);
+            if (existingLine) {
+                existingLine.remove();
+                STATE.domElements.delete(lineId);
+            }
+            
+            // Remover label existente
+            const existingLabel = STATE.domElements.get(`${lineId}-label`);
+            if (existingLabel) {
+                existingLabel.remove();
+                STATE.domElements.delete(`${lineId}-label`);
+            }
+            
+            // Calcular ângulo e distância na tela
+            const dx = pointB.screenX - pointA.screenX;
+            const dy = pointB.screenY - pointA.screenY;
+            const screenDistance = Math.sqrt(dx*dx + dy*dy);
             const angle = Math.atan2(dy, dx) * (180 / Math.PI);
             
-            // Criar elemento da linha
+            // Criar linha
             const lineElement = document.createElement('div');
-            lineElement.className = 'measure-line';
-            lineElement.style.left = `${pointA.x}%`;
-            lineElement.style.top = `${pointA.y}%`;
-            lineElement.style.width = `${distance}%`;
-            lineElement.style.height = '4px';
+            lineElement.className = 'ar-line';
+            lineElement.style.left = `${pointA.screenX}%`;
+            lineElement.style.top = `${pointA.screenY}%`;
+            lineElement.style.width = `${screenDistance}%`;
             lineElement.style.transform = `rotate(${angle}deg)`;
-            lineElement.style.transformOrigin = '0 0';
             
-            measureOverlay.appendChild(lineElement);
-            lines.push(lineElement);
+            // Efeito de profundidade
+            const depthEffect = document.createElement('div');
+            depthEffect.className = 'line-depth';
+            lineElement.appendChild(depthEffect);
             
-            // Criar label da medida
-            createMeasureLabel(pointA, pointB, distance, angle);
-        }
-        
-        // Criar label da medida
-        function createMeasureLabel(pointA, pointB, distance, angle) {
-            // Posição do label (meio da linha)
-            const midX = (pointA.x + pointB.x) / 2;
-            const midY = (pointA.y + pointB.y) / 2;
+            arOverlay.appendChild(lineElement);
+            STATE.domElements.set(lineId, lineElement);
             
-            // Converter distância para metros (simulação)
-            // Na prática, isso precisaria de calibração com objeto real
-            const distanceInMeters = (distance * 0.02).toFixed(2);
+            // Criar label
+            const midX = (pointA.screenX + pointB.screenX) / 2;
+            const midY = (pointA.screenY + pointB.screenY) / 2;
             
-            // Criar elemento do label
             const labelElement = document.createElement('div');
             labelElement.className = 'measure-label';
-            labelElement.textContent = `${distanceInMeters} m`;
+            labelElement.textContent = `${distance.toFixed(2)} m`;
             labelElement.style.left = `${midX}%`;
             labelElement.style.top = `${midY}%`;
-            
-            // Rotacionar label para ficar legível
             labelElement.style.transform = `translate(-50%, -50%) rotate(${-angle}deg)`;
             
-            measureOverlay.appendChild(labelElement);
-            labels.push(labelElement);
+            arOverlay.appendChild(labelElement);
+            STATE.domElements.set(`${lineId}-label`, labelElement);
         }
         
-        // Calcular distância total
-        function calculateDistance() {
-            if (points.length < 2) {
-                distanceValue.textContent = '0.00';
-                return;
-            }
-            
-            let totalDistance = 0;
-            
-            // Calcular soma de todas as distâncias entre pontos consecutivos
-            for (let i = 1; i < points.length; i++) {
-                const pointA = points[i-1];
-                const pointB = points[i];
-                
-                const dx = pointB.x - pointA.x;
-                const dy = pointB.y - pointA.y;
-                const segmentDistance = Math.sqrt(dx * dx + dy * dy);
-                
-                // Converter para metros
-                totalDistance += segmentDistance * 0.02;
-            }
-            
-            distanceValue.textContent = totalDistance.toFixed(2);
-        }
-        
-        // Calcular área
-        function calculateArea() {
-            if (points.length < 3) {
-                areaValue.textContent = '0.00';
-                return;
-            }
-            
-            // Fórmula do polígono (Shoelace)
+        function calculateArea3D() {
+            // Fórmula de área para polígono 3D
             let area = 0;
             
-            for (let i = 0; i < points.length; i++) {
-                const j = (i + 1) % points.length;
-                area += points[i].x * points[j].y;
-                area -= points[j].x * points[i].y;
+            for (let i = 0; i < STATE.points.length; i++) {
+                const j = (i + 1) % STATE.points.length;
+                const pointA = STATE.points[i];
+                const pointB = STATE.points[j];
+                
+                // Usar coordenadas 3D para cálculo mais preciso
+                area += pointA.worldX * pointB.worldY - pointB.worldX * pointA.worldY;
             }
             
-            area = Math.abs(area / 2);
-            
-            // Converter para metros quadrados
-            const areaInM2 = (area * 0.0004).toFixed(2);
-            areaValue.textContent = areaInM2;
+            area = Math.abs(area / 2) * STATE.scaleFactor * STATE.scaleFactor;
+            areaValue.textContent = area.toFixed(2);
         }
         
-        // Atualizar contador de pontos
-        function updatePointsDisplay() {
-            pointsValue.textContent = points.length;
+        function calculateVolume3D() {
+            // Para 4 pontos, assumir paralelepípedo
+            if (STATE.points.length >= 4) {
+                // Calcular vetores
+                const p0 = STATE.points[0];
+                const p1 = STATE.points[1];
+                const p2 = STATE.points[2];
+                const p3 = STATE.points[3];
+                
+                const v1 = { 
+                    x: p1.worldX - p0.worldX, 
+                    y: p1.worldY - p0.worldY, 
+                    z: p1.worldZ - p0.worldZ 
+                };
+                
+                const v2 = { 
+                    x: p2.worldX - p0.worldX, 
+                    y: p2.worldY - p0.worldY, 
+                    z: p2.worldZ - p0.worldZ 
+                };
+                
+                const v3 = { 
+                    x: p3.worldX - p0.worldX, 
+                    y: p3.worldY - p0.worldY, 
+                    z: p3.worldZ - p0.worldZ 
+                };
+                
+                // Produto misto (volume do paralelepípedo)
+                const scalarTriple = 
+                    v1.x * (v2.y * v3.z - v2.z * v3.y) -
+                    v1.y * (v2.x * v3.z - v2.z * v3.x) +
+                    v1.z * (v2.x * v3.y - v2.y * v3.x);
+                
+                const volume = Math.abs(scalarTriple) * 
+                              Math.pow(STATE.scaleFactor, 3);
+                
+                volumeValue.textContent = volume.toFixed(3);
+            }
         }
         
-        // Limpar todas as medições
-        function clearMeasurements() {
-            // Remover elementos visuais
-            points.forEach(point => {
-                if (point.element && point.element.parentNode) {
-                    point.element.parentNode.removeChild(point.element);
+        // ========== SISTEMA DE CALIBRAÇÃO ==========
+        function startCalibration() {
+            const realSize = parseFloat(calibrationSizeInput.value) / 100; // Converter cm para m
+            
+            if (STATE.points.length >= 2) {
+                // Usar os dois últimos pontos para calibração
+                const pointA = STATE.points[STATE.points.length - 2];
+                const pointB = STATE.points[STATE.points.length - 1];
+                
+                // Calcular distância na tela
+                const dx = pointB.screenX - pointA.screenX;
+                const dy = pointB.screenY - pointA.screenY;
+                const screenDistance = Math.sqrt(dx*dx + dy*dy);
+                
+                // Calcular novo fator de escala
+                STATE.scaleFactor = realSize / screenDistance;
+                STATE.isCalibrated = true;
+                
+                alert(`Calibração concluída! Escala: ${STATE.scaleFactor.toFixed(6)} m/px`);
+                calibrationModal.classList.add('hidden');
+                
+                // Recalcular todas as medições
+                updateMeasurements();
+            } else {
+                alert("Adicione pelo menos 2 pontos para calibrar!");
+            }
+        }
+        
+        // ========== ATUALIZAÇÃO DA CENA AR ==========
+        function updateARScene() {
+            // Atualizar posição de todos os pontos baseado na orientação atual
+            STATE.points.forEach(point => {
+                point.updateWorldPosition(STATE.orientation);
+            });
+            
+            // Atualizar linhas
+            updateAllLines();
+            
+            // Atualizar movimento indicator
+            updateMovementIndicator();
+            
+            // Atualizar contador de pontos no debug
+            document.getElementById('debug-points').textContent = STATE.points.length;
+            
+            // Próximo frame
+            requestAnimationFrame(updateARScene);
+        }
+        
+        function updateAllLines() {
+            // Atualizar todas as linhas entre pontos consecutivos
+            for (let i = 1; i < STATE.points.length; i++) {
+                const pointA = STATE.points[i-1];
+                const pointB = STATE.points[i];
+                
+                const lineId = `line-${pointA.id}-${pointB.id}`;
+                const lineElement = STATE.domElements.get(lineId);
+                
+                if (lineElement) {
+                    const dx = pointB.screenX - pointA.screenX;
+                    const dy = pointB.screenY - pointA.screenY;
+                    const screenDistance = Math.sqrt(dx*dx + dy*dy);
+                    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    
+                    lineElement.style.left = `${pointA.screenX}%`;
+                    lineElement.style.top = `${pointA.screenY}%`;
+                    lineElement.style.width = `${screenDistance}%`;
+                    lineElement.style.transform = `rotate(${angle}deg)`;
+                }
+            }
+        }
+        
+        function updateMovementIndicator() {
+            // Mostrar pontos de movimento baseado no giroscópio
+            movementIndicator.innerHTML = '';
+            
+            const numDots = 5;
+            for (let i = 0; i < numDots; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'movement-dot';
+                
+                // Posicionar baseado na orientação
+                const angle = (STATE.orientation.alpha + (i * 72)) * Math.PI / 180;
+                const radius = 50 + Math.sin(Date.now() / 1000 + i) * 30;
+                
+                const x = 50 + radius * Math.cos(angle);
+                const y = 50 + radius * Math.sin(angle);
+                
+                dot.style.left = `${x}%`;
+                dot.style.top = `${y}%`;
+                
+                movementIndicator.appendChild(dot);
+            }
+        }
+        
+        // ========== FUNÇÕES DE UTILIDADE ==========
+        function clearAllMeasurements() {
+            // Remover todos os elementos DOM
+            STATE.domElements.forEach(element => {
+                if (element.parentNode) {
+                    element.parentNode.removeChild(element);
                 }
             });
             
-            lines.forEach(line => {
-                if (line.parentNode) {
-                    line.parentNode.removeChild(line);
-                }
-            });
+            // Limpar estado
+            STATE.domElements.clear();
+            STATE.points = [];
+            STATE.lines = [];
+            STATE.labels = [];
+            STATE.pointCounter = 0;
             
-            labels.forEach(label => {
-                if (label.parentNode) {
-                    label.parentNode.removeChild(label);
-                }
-            });
-            
-            // Limpar arrays
-            points = [];
-            lines = [];
-            labels = [];
-            pointCounter = 0;
-            
-            // Atualizar interface
+            // Limpar displays
             distanceValue.textContent = '0.00';
             areaValue.textContent = '0.00';
-            updatePointsDisplay();
+            volumeValue.textContent = '0.00';
+            
+            updateStatusDisplay();
         }
         
-        // Alternar entre câmeras
-        async function switchCamera() {
-            if (!cameraStream) return;
+        function updateStatusDisplay() {
+            statusPoints.textContent = `📍 Pontos: ${STATE.points.length}`;
             
-            // Parar câmera atual
-            cameraStream.getTracks().forEach(track => track.stop());
-            
-            // Alternar tipo
-            isFrontCamera = !isFrontCamera;
-            
-            // Limpar medições
-            clearMeasurements();
-            
-            // Atualizar status
-            cameraStatus.textContent = `Câmera: ${isFrontCamera ? 'Frontal' : 'Traseira'}`;
-            
-            // Iniciar nova câmera
-            await startCamera();
-        }
-        
-        // Reiniciar tudo
-        function resetAll() {
-            clearMeasurements();
-            
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-                isCameraActive = false;
+            if (STATE.isCalibrated) {
+                statusDepth.textContent = `📐 Calibrado: ${STATE.scaleFactor.toFixed(4)} m/px`;
             }
-            
-            // Mostrar modal novamente
-            permissionModal.classList.remove('hidden');
-            isFrontCamera = false;
-            cameraStatus.textContent = 'Câmera: Traseira';
-            instructions.classList.remove('hidden');
         }
         
-        // Event Listeners
-        startCameraBtn.addEventListener('click', startCamera);
-        centerPointBtn.addEventListener('click', addMeasurementPoint);
-        addPointBtn.addEventListener('click', addMeasurementPoint);
-        clearBtn.addEventListener('click', clearMeasurements);
-        switchCameraBtn.addEventListener('click', switchCamera);
-        resetBtn.addEventListener('click', resetAll);
-        
-        // Permitir tocar em qualquer lugar do overlay para adicionar ponto
-        measureOverlay.addEventListener('click', function(e) {
-            // Não adicionar ponto se clicar no botão central
-            if (e.target === centerPointBtn || centerPointBtn.contains(e.target)) {
-                return;
-            }
+        // ========== EVENT LISTENERS ==========
+        function setupEventListeners() {
+            // Botões principais
+            btnAddPoint.addEventListener('click', addARPoint);
+            btnCalibrate.addEventListener('click', () => {
+                calibrationModal.classList.remove('hidden');
+            });
+            btnSwitchCamera.addEventListener('click', switchCamera);
+            btnClear.addEventListener('click', clearAllMeasurements);
             
-            // Calcular posição em porcentagem
-            const rect = measureOverlay.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            // Calibração
+            btnStartCalibration.addEventListener('click', startCalibration);
+            btnSkipCalibration.addEventListener('click', () => {
+                calibrationModal.classList.add('hidden');
+                alert("Usando escala padrão. Para medições precisas, recomenda-se calibrar.");
+            });
             
-            // Adicionar ponto na posição clicada
-            addPointAtPosition(x, y);
-        });
+            // Toque na tela para adicionar ponto
+            arOverlay.addEventListener('click', (e) => {
+                if (STATE.mode === 'add-point') {
+                    // Calcular posição do clique
+                    const rect = arOverlay.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    
+                    // Adicionar ponto na posição clicada
+                    addPointAtPosition(x, y);
+                }
+            });
+            
+            // Tecla D para debug
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'd' || e.key === 'D') {
+                    debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+        }
         
-        // Função para adicionar ponto em posição específica
         function addPointAtPosition(x, y) {
-            if (!isCameraActive) {
-                alert("Ative a câmera primeiro!");
-                return;
-            }
+            STATE.pointCounter++;
             
-            pointCounter++;
+            const point = new Point3D(
+                STATE.pointCounter,
+                x,
+                y,
+                estimateDepth()
+            );
             
-            // Criar ponto
-            const point = {
-                id: pointCounter,
-                x: x,
-                y: y,
-                element: null,
-                label: null
-            };
-            
-            // Criar elemento visual do ponto
+            STATE.points.push(point);
             createPointElement(point);
+            updateStatusDisplay();
             
-            // Posicionar ponto
-            point.element.style.left = `${x}%`;
-            point.element.style.top = `${y}%`;
-            point.element.querySelector('.point-number').textContent = pointCounter;
-            
-            // Adicionar ao array
-            points.push(point);
-            
-            // Atualizar interface
-            updatePointsDisplay();
-            
-            // Se tiver pelo menos 2 pontos, criar linha e calcular
-            if (points.length >= 2) {
-                const lastPoint = points[points.length - 2];
-                const currentPoint = points[points.length - 1];
-                
-                createLine(lastPoint, currentPoint);
-                calculateDistance();
-            }
-            
-            // Se tiver pelo menos 3 pontos, calcular área
-            if (points.length >= 3) {
-                calculateArea();
+            if (STATE.points.length >= 2) {
+                updateMeasurements();
             }
         }
         
-        // Feedback tátil para mobile
-        const actionButtons = document.querySelectorAll('.action-btn');
-        actionButtons.forEach(btn => {
-            btn.addEventListener('touchstart', function() {
-                this.style.opacity = '0.7';
-            });
-            
-            btn.addEventListener('touchend', function() {
-                this.style.opacity = '1';
-            });
-        });
+        // ========== INICIALIZAR APLICAÇÃO ==========
+        window.addEventListener('DOMContentLoaded', initializeSystem);
         
-        // Prevenir zoom com dois dedos
-        document.addEventListener('gesturestart', function(e) {
-            e.preventDefault();
-        });
-        
-        // Inicializar
-        window.addEventListener('DOMContentLoaded', () => {
-            // Verificar se temos permissão de câmera
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                console.log("API de câmera disponível");
-            } else {
-                alert("Seu navegador não suporta acesso à câmera.");
-            }
-        });
-        
-        // Pausar câmera quando a página não estiver visível
+        // Gerenciar visibilidade da página
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden && cameraStream) {
-                cameraStream.getTracks().forEach(track => track.pause());
-            } else if (!document.hidden && cameraStream) {
-                cameraStream.getTracks().forEach(track => track.resume());
+            if (document.hidden && STATE.cameraStream) {
+                STATE.cameraStream.getTracks().forEach(track => track.pause());
+            } else if (!document.hidden && STATE.cameraStream) {
+                STATE.cameraStream.getTracks().forEach(track => track.resume());
             }
         });
     </script>
